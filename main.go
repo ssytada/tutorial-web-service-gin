@@ -44,15 +44,33 @@ func getAlbums(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, albums)
 }
 
-// func postAlbums(c *gin.Context) {
-// 	var newAlbum album
+func postAlbums(c *gin.Context) {
+	var newAlbum album
 
-// 	if err := c.BindJSON(&newAlbum); err != nil {
-// 		return
-// 	}
-// 	albums = append(albums, newAlbum)
-// 	c.IndentedJSON(http.StatusCreated, newAlbum)
-// }
+	if err := c.BindJSON(&newAlbum); err != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message: postAlbums:": err})
+		return
+	}
+	alb, err := addAlbum(newAlbum)
+	if err != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message: postAlbums:": err})
+		return
+	}
+	newAlbum.ID = alb
+	c.IndentedJSON(http.StatusCreated, newAlbum)
+}
+
+func addAlbum(alb album) (int64, error) {
+	result, err := db.Exec("INSERT INTO album (title, artist, price) VALUES (?,?,?)", alb.Title, alb.Artist, alb.Price)
+	if err != nil {
+		return 0, fmt.Errorf("addAlbum: %v", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("addAlbum: %v", err)
+	}
+	return id, nil
+}
 
 func getAlbumByID(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -102,6 +120,6 @@ func main() {
 	router := gin.Default()
 	router.GET("/albums", getAlbums)
 	router.GET("/albums/:id", getAlbumByID)
-	// router.POST("/albums", postAlbums)
+	router.POST("/albums", postAlbums)
 	router.Run("localhost:8080")
 }
