@@ -24,9 +24,25 @@ type album struct {
 // 	{ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
 // }
 
-// func getAlbums(c *gin.Context) {
-// 	c.IndentedJSON(http.StatusOK, albums)
-// }
+func getAlbums(c *gin.Context) {
+	var albums []album
+	rows, err := db.Query("SELECT * FROM album")
+	if err != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+		return
+	}
+
+	for rows.Next() {
+		var alb album
+		if err := rows.Scan(&alb.ID, &alb.Title, &alb.Artist, &alb.Price); err != nil {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"message: getAlbums:": err})
+			return
+		}
+		albums = append(albums, alb)
+	}
+
+	c.IndentedJSON(http.StatusOK, albums)
+}
 
 // func postAlbums(c *gin.Context) {
 // 	var newAlbum album
@@ -84,7 +100,7 @@ func main() {
 	fmt.Println("connected!")
 
 	router := gin.Default()
-	// router.GET("/albums", getAlbums)
+	router.GET("/albums", getAlbums)
 	router.GET("/albums/:id", getAlbumByID)
 	// router.POST("/albums", postAlbums)
 	router.Run("localhost:8080")
